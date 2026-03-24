@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BudgetTracker — DA1 Project</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --sidebar:#1a1f2e;--sidebar-hover:#252c3d;--sidebar-active:#2d3548;
+  --bg:#f0f2f5;--card:#ffffff;--text:#1a1f2e;--muted:#6b7280;--border:#e5e7eb;
+  --green:#16a34a;--red:#dc2626;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;}
+/* SIDEBAR */
+.sidebar{width:240px;min-width:240px;background:var(--sidebar);display:flex;flex-direction:column;padding:1.2rem 0;position:fixed;top:0;left:0;height:100vh;z-index:50;}
+.sidebar-logo{display:flex;align-items:center;gap:0.7rem;padding:0 1.2rem 1.5rem;border-bottom:1px solid #2d3548;}
+.logo-icon{width:36px;height:36px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;font-weight:700;}
+.logo-text{color:#fff;font-weight:700;font-size:0.95rem;line-height:1.2;}
+.logo-sub{color:#6b7a9a;font-size:0.72rem;font-weight:400;}
+.nav{flex:1;padding:1rem 0;}
+.nav-item{display:flex;align-items:center;gap:0.8rem;padding:0.65rem 1.2rem;cursor:pointer;color:#9ca3b8;font-size:0.85rem;font-weight:500;transition:all 0.15s;border-left:3px solid transparent;}
+.nav-item:hover{background:var(--sidebar-hover);color:#fff;}
+.nav-item.active{background:var(--sidebar-active);color:#fff;border-left-color:var(--green);}
+.nav-icon{font-size:1rem;width:20px;text-align:center;}
+.sidebar-footer{padding:1rem 1.2rem;color:#4b5568;font-size:0.72rem;border-top:1px solid #2d3548;}
+/* MAIN */
+.main{margin-left:240px;flex:1;min-height:100vh;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0.9rem 2rem;background:var(--card);border-bottom:1px solid var(--border);}
+.content{padding:2rem;max-width:1100px;}
+/* PAGE HEADER */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;}
+.page-title{font-size:1.6rem;font-weight:700;}
+.page-sub{font-size:0.82rem;color:var(--muted);margin-top:0.2rem;}
+.btn-primary{background:var(--green);color:#fff;border:none;padding:0.6rem 1.2rem;border-radius:8px;font-family:'Inter',sans-serif;font-weight:600;font-size:0.85rem;cursor:pointer;display:flex;align-items:center;gap:0.4rem;transition:opacity 0.15s;}
+.btn-primary:hover{opacity:0.88;}
+/* PANELS */
+.panel{display:none;}
+.panel.active{display:block;}
+/* STAT CARDS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.3rem;}
+.stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;}
+.stat-label{font-size:0.8rem;color:var(--muted);font-weight:500;}
+.stat-value{font-size:1.7rem;font-weight:700;}
+.stat-value.green{color:var(--green);}
+.stat-value.red{color:var(--red);}
+.stat-desc{font-size:0.75rem;color:var(--muted);margin-top:0.3rem;}
+/* BUDGET BAR */
+.budget-bar-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.3rem;margin-bottom:1.5rem;}
+.budget-bar-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem;}
+.budget-bar-title{font-weight:600;font-size:0.95rem;}
+.budget-pct{font-size:0.85rem;font-weight:600;color:var(--green);}
+.budget-pct.warn{color:var(--red);}
+.bar-track{background:#e5e7eb;border-radius:999px;height:12px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:999px;background:var(--green);transition:width 0.6s;}
+.bar-fill.warn{background:var(--red);}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1.5rem;}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.3rem;border-bottom:1px solid var(--border);}
+.card-title{font-weight:600;font-size:0.95rem;}
+.view-all{font-size:0.8rem;color:var(--green);cursor:pointer;font-weight:500;}
+/* EXPENSE ROWS */
+.expense-row{display:flex;align-items:center;gap:1rem;padding:0.85rem 1.3rem;border-bottom:1px solid var(--border);}
+.expense-row:last-child{border-bottom:none;}
+.expense-row:hover{background:#f9fafb;}
+.exp-cat-badge{padding:0.25rem 0.6rem;border-radius:6px;font-size:0.72rem;font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:0.3rem;min-width:110px;justify-content:center;}
+.exp-info{flex:1;}
+.exp-name{font-size:0.88rem;font-weight:500;}
+.exp-date{font-size:0.75rem;color:var(--muted);}
+.exp-amount{font-size:0.9rem;font-weight:600;}
+.del-btn{background:none;border:none;cursor:pointer;color:#d1d5db;font-size:0.9rem;padding:0.2rem;transition:color 0.15s;}
+.del-btn:hover{color:var(--red);}
+/* MONTH NAV */
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.3rem;}
+.month-nav-btn{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.9rem;cursor:pointer;font-size:0.9rem;}
+.month-label{font-size:0.9rem;font-weight:600;display:flex;align-items:center;gap:0.5rem;}
+/* CATEGORIES */
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;}
+@media(max-width:700px){.cat-grid{grid-template-columns:1fr;}}
+.donut-card,.cat-list-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.3rem;}
+.donut-wrap{display:flex;align-items:center;justify-content:center;padding:1rem 0;}
+.cat-item{display:flex;align-items:center;gap:0.8rem;padding:0.6rem 0;border-bottom:1px solid var(--border);}
+.cat-item:last-child{border-bottom:none;}
+.cat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.cat-item-name{flex:1;font-size:0.85rem;font-weight:500;}
+.cat-bar-mini{width:60px;background:#e5e7eb;border-radius:999px;height:5px;}
+.cat-bar-mini-fill{height:5px;border-radius:999px;}
+.cat-item-amt{font-size:0.85rem;font-weight:600;min-width:80px;text-align:right;}
+.cat-item-pct{font-size:0.78rem;color:var(--muted);width:32px;text-align:right;}
+.grand-total-row{display:flex;justify-content:space-between;padding-top:0.8rem;margin-top:0.4rem;border-top:2px solid var(--border);}
+.grand-total-row span{font-weight:700;font-size:0.9rem;}
+/* SEARCH */
+.search-filters{display:flex;gap:1rem;margin-bottom:1.3rem;flex-wrap:wrap;}
+.search-filters input,.search-filters select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:0.6rem 0.9rem;border-radius:8px;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;flex:1;min-width:150px;}
+.search-filters input:focus,.search-filters select:focus{border-color:var(--green);}
+/* BUDGET PAGE */
+.budget-set-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;max-width:400px;}
+.budget-set-card h3{font-size:1rem;font-weight:600;margin-bottom:1rem;}
+.budget-input-row{display:flex;gap:0.8rem;align-items:flex-end;}
+label{font-size:0.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:0.4rem;}
+input,select{background:#f9fafb;border:1px solid var(--border);color:var(--text);padding:0.65rem 0.9rem;border-radius:8px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;transition:border-color 0.15s;width:100%;}
+input:focus,select:focus{border-color:var(--green);background:#fff;}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:#00000060;display:none;align-items:center;justify-content:center;z-index:200;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--card);border-radius:14px;padding:1.8rem;width:90%;max-width:420px;box-shadow:0 20px 60px #0003;}
+.modal h3{font-size:1.1rem;font-weight:700;margin-bottom:1.2rem;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+.form-group{display:flex;flex-direction:column;}
+.form-group.full{grid-column:1/-1;}
+.modal-btns{display:flex;gap:0.8rem;margin-top:1rem;}
+.btn-cancel{background:#f3f4f6;color:var(--text);border:none;padding:0.6rem 1.2rem;border-radius:8px;font-family:'Inter',sans-serif;font-weight:600;font-size:0.85rem;cursor:pointer;}
+/* TOAST */
+.toast{position:fixed;bottom:2rem;right:2rem;padding:0.8rem 1.4rem;border-radius:10px;font-size:0.85rem;font-weight:500;transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:300;color:#fff;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:var(--green);}
+.toast.error{background:var(--red);}
+/* EMPTY */
+.empty{text-align:center;padding:3rem;color:var(--muted);}
+.empty .eicon{font-size:2.5rem;margin-bottom:0.5rem;}
+/* CATEGORY BADGE COLORS */
+.Food{background:#fff7ed;color:#c2410c;}
+.Travel{background:#eff6ff;color:#1d4ed8;}
+.Medical{background:#fdf2f8;color:#be185d;}
+.Shopping{background:#f5f3ff;color:#6d28d9;}
+.Utilities{background:#fefce8;color:#a16207;}
+.Entertainment{background:#f0fdf4;color:#15803d;}
+.Other{background:#f0fdfa;color:#0f766e;}
+@media(max-width:768px){.sidebar{display:none;}.main{margin-left:0;}}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">₹</div>
+    <div class="logo-text">BudgetTracker<div class="logo-sub">DA1 Project</div></div>
+  </div>
+  <div class="nav">
+    <div class="nav-item active" onclick="switchTab('dashboard')"><span class="nav-icon">📊</span>Dashboard</div>
+    <div class="nav-item" onclick="switchTab('expenses')"><span class="nav-icon">📋</span>Expenses</div>
+    <div class="nav-item" onclick="switchTab('categories')"><span class="nav-icon">🏷️</span>Categories</div>
+    <div class="nav-item" onclick="switchTab('search')"><span class="nav-icon">🔍</span>Search</div>
+    <div class="nav-item" onclick="switchTab('budget')"><span class="nav-icon">💰</span>Budget</div>
+  </div>
+  <div class="sidebar-footer">Expense &amp; Budget Tracker</div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <span style="font-size:1.1rem;color:var(--muted);cursor:pointer">☰</span>
+    <span style="font-size:1.1rem;color:var(--muted);cursor:pointer">🌙</span>
+  </div>
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="panel active" id="tab-dashboard">
+      <div class="page-header">
+        <div><div class="page-title">Dashboard</div><div class="page-sub" id="dash-sub"></div></div>
+        <button class="btn-primary" onclick="openAddModal()">＋ Add Expense</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-top"><span class="stat-label">Total Spent</span><span style="color:var(--muted)">₹</span></div>
+          <div class="stat-value" id="d-total">Rs 0.00</div>
+          <div class="stat-desc" id="d-count">0 expenses this month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top"><span class="stat-label">Budget Limit</span><span style="color:var(--muted)">↗</span></div>
+          <div class="stat-value" id="d-budget">Not set</div>
+          <div class="stat-desc" id="d-blabel">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top"><span class="stat-label">Remaining</span><span style="color:var(--muted)">↗</span></div>
+          <div class="stat-value green" id="d-remaining">—</div>
+          <div class="stat-desc" id="d-rlabel">Left to spend</div>
+        </div>
+      </div>
+      <div class="budget-bar-card" id="budgetBarCard" style="display:none">
+        <div class="budget-bar-top">
+          <span class="budget-bar-title">Budget Usage</span>
+          <span class="budget-pct" id="budgetPct">⊙ 0%</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="barFill" style="width:0%"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Recent Expenses</span>
+          <span class="view-all" onclick="switchTab('expenses')">View all</span>
+        </div>
+        <div id="recentList"></div>
+      </div>
+    </div>
+
+    <!-- EXPENSES -->
+    <div class="panel" id="tab-expenses">
+      <div class="page-header">
+        <div><div class="page-title">Expenses</div><div class="page-sub">Manage your spending records</div></div>
+        <button class="btn-primary" onclick="openAddModal()">＋ Add Expense</button>
+      </div>
+      <div class="month-nav">
+        <button class="month-nav-btn" onclick="changeMonth(-1)">‹</button>
+        <div class="month-label">📅 <span id="expMonthLabel"></span></div>
+        <button class="month-nav-btn" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="stat-label" id="expCount">0 expenses</span>
+          <span style="font-weight:600;font-size:0.88rem" id="expTotal">Total: Rs 0.00</span>
+        </div>
+        <div id="expenseList"></div>
+      </div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div class="panel" id="tab-categories">
+      <div class="page-header">
+        <div><div class="page-title">Category Breakdown</div><div class="page-sub">See where your money goes</div></div>
+      </div>
+      <div class="month-nav">
+        <button class="month-nav-btn" onclick="changeCatMonth(-1)">‹</button>
+        <div class="month-label">📅 <span id="catMonthLabel"></span></div>
+        <button class="month-nav-btn" onclick="changeCatMonth(1)">›</button>
+      </div>
+      <div class="cat-grid">
+        <div class="donut-card">
+          <div class="card-title" style="margin-bottom:0.5rem">Spending Distribution</div>
+          <div class="donut-wrap"><canvas id="donutChart" width="220" height="220"></canvas></div>
+        </div>
+        <div class="cat-list-card">
+          <div class="card-title" style="margin-bottom:0.8rem">Category Totals</div>
+          <div id="catList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="panel" id="tab-search">
+      <div class="page-header">
+        <div><div class="page-title">Search</div><div class="page-sub">Find specific expenses</div></div>
+      </div>
+      <div class="search-filters">
+        <input type="date" id="s-date" oninput="doSearch()"/>
+        <select id="s-cat" onchange="doSearch()">
+          <option value="">All Categories</option>
+          <option>Food</option><option>Travel</option><option>Medical</option>
+          <option>Shopping</option><option>Utilities</option><option>Entertainment</option><option>Other</option>
+        </select>
+        <input type="text" id="s-note" oninput="doSearch()" placeholder="Search by note..."/>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="stat-label" id="searchCount">0 results</span>
+          <span style="font-weight:600;font-size:0.88rem" id="searchTotal"></span>
+        </div>
+        <div id="searchList"></div>
+      </div>
+    </div>
+
+    <!-- BUDGET -->
+    <div class="panel" id="tab-budget">
+      <div class="page-header">
+        <div><div class="page-title">Budget</div><div class="page-sub">Set your monthly spending limit</div></div>
+      </div>
+      <div class="budget-set-card">
+        <h3>Monthly Budget Limit</h3>
+        <div class="budget-input-row">
+          <div style="flex:1">
+            <label>Amount (₹)</label>
+            <input type="number" id="budgetInputPage" placeholder="e.g. 12000" min="0"/>
+          </div>
+          <button class="btn-primary" style="height:42px;margin-bottom:1px" onclick="saveBudgetPage()">Save</button>
+        </div>
+        <div style="margin-top:1rem;font-size:0.82rem;color:var(--muted)" id="budgetStatus"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h3>Add New Expense</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Date</label><input type="date" id="m-date"/></div>
+      <div class="form-group"><label>Category</label>
+        <select id="m-cat">
+          <option>Food</option><option>Travel</option><option>Medical</option>
+          <option>Shopping</option><option>Utilities</option><option>Entertainment</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Amount (₹)</label><input type="number" id="m-amount" placeholder="0.00" min="0" step="0.01"/></div>
+      <div class="form-group full"><label>Note / Description</label><input type="text" id="m-note" placeholder="e.g. Grocery top-up"/></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-primary" onclick="addExpense()">Add Expense</button>
+      <button class="btn-cancel" onclick="closeAddModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let expenses=JSON.parse(localStorage.getItem('bt_expenses')||'[]');
+let budget=parseFloat(localStorage.getItem('bt_budget')||'0');
+let viewMonth=new Date().toISOString().slice(0,7);
+let catMonth=new Date().toISOString().slice(0,7);
+let donutChart=null;
+const CAT_COLORS={Food:'#ea580c',Travel:'#2563eb',Medical:'#db2777',Shopping:'#7c3aed',Utilities:'#d97706',Entertainment:'#16a34a',Other:'#0d9488'};
+const CAT_EMOJI={Food:'🍽️',Travel:'✈️',Medical:'❤️',Shopping:'🛍️',Utilities:'⚡',Entertainment:'🎬',Other:'📦'};
+
+function save(){localStorage.setItem('bt_expenses',JSON.stringify(expenses));localStorage.setItem('bt_budget',budget);}
+function fmt(n){return 'Rs '+parseFloat(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function today(){return new Date().toISOString().slice(0,10);}
+function monthLabel(m){const[y,mo]=m.split('-');return new Date(y,mo-1).toLocaleString('en',{month:'long',year:'numeric'});}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('m-date').value=today();
+  renderDashboard();renderExpenses();renderCategories();doSearch();updateBudgetPage();
+});
+
+function switchTab(name){
+  const names=['dashboard','expenses','categories','search','budget'];
+  document.querySelectorAll('.nav-item').forEach((el,i)=>el.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='dashboard')renderDashboard();
+  if(name==='expenses')renderExpenses();
+  if(name==='categories')renderCategories();
+  if(name==='search')doSearch();
+  if(name==='budget')updateBudgetPage();
+}
+
+function openAddModal(){document.getElementById('m-date').value=today();document.getElementById('m-amount').value='';document.getElementById('m-note').value='';document.getElementById('addModal').classList.add('show');}
+function closeAddModal(){document.getElementById('addModal').classList.remove('show');}
+
+function addExpense(){
+  const date=document.getElementById('m-date').value;
+  const cat=document.getElementById('m-cat').value;
+  const amount=parseFloat(document.getElementById('m-amount').value);
+  const note=document.getElementById('m-note').value.trim()||'-';
+  if(!date){toast('Please select a date','error');return;}
+  if(!amount||amount<=0){toast('Enter a valid amount','error');return;}
+  expenses.unshift({date,category:cat,amount,note});
+  save();closeAddModal();toast('Expense added ✓','success');
+  renderDashboard();renderExpenses();renderCategories();
+}
+
+function deleteExpense(i){expenses.splice(i,1);save();renderDashboard();renderExpenses();renderCategories();toast('Deleted','success');}
+
+function renderDashboard(){
+  const m=new Date().toISOString().slice(0,7);
+  document.getElementById('dash-sub').textContent=monthLabel(m)+' overview';
+  const monthly=expenses.filter(e=>e.date.startsWith(m));
+  const total=monthly.reduce((s,e)=>s+e.amount,0);
+  document.getElementById('d-total').textContent=fmt(total);
+  document.getElementById('d-count').textContent=monthly.length+' expenses this month';
+  if(budget>0){
+    document.getElementById('d-budget').textContent=fmt(budget);
+    document.getElementById('d-blabel').textContent='Monthly limit for '+monthLabel(m);
+    const left=budget-total;
+    const remEl=document.getElementById('d-remaining');
+    remEl.textContent=fmt(Math.abs(left));
+    remEl.className='stat-value '+(left<0?'red':'green');
+    document.getElementById('d-rlabel').textContent=left<0?'Over budget':'Left to spend';
+    const pct=Math.min((total/budget)*100,100);
+    document.getElementById('budgetBarCard').style.display='block';
+    const pctEl=document.getElementById('budgetPct');
+    pctEl.textContent='⊙ '+pct.toFixed(0)+'%';
+    pctEl.className='budget-pct'+(pct>=90?' warn':'');
+    const fill=document.getElementById('barFill');
+    fill.style.width=pct+'%';
+    fill.className='bar-fill'+(pct>=90?' warn':'');
+  } else {
+    document.getElementById('d-budget').textContent='Not set';
+    document.getElementById('d-blabel').textContent='—';
+    document.getElementById('d-remaining').textContent='—';
+    document.getElementById('budgetBarCard').style.display='none';
+  }
+  const recent=expenses.slice(0,5);
+  const div=document.getElementById('recentList');
+  div.innerHTML=recent.length===0?'<div class="empty"><div class="eicon">💸</div>No expenses yet. Add your first one!</div>':recent.map((e,i)=>expRow(e,i,false)).join('');
+}
+
+function renderExpenses(){
+  document.getElementById('expMonthLabel').textContent=monthLabel(viewMonth);
+  const filtered=expenses.filter(e=>e.date.startsWith(viewMonth));
+  const total=filtered.reduce((s,e)=>s+e.amount,0);
+  document.getElementById('expCount').textContent=filtered.length+' expenses';
+  document.getElementById('expTotal').textContent='Total: '+fmt(total);
+  const div=document.getElementById('expenseList');
+  div.innerHTML=filtered.length===0?'<div class="empty"><div class="eicon">📭</div>No expenses for this month</div>':filtered.map(e=>expRow(e,expenses.indexOf(e),true)).join('');
+}
+
+function changeMonth(d){const[y,m]=viewMonth.split('-').map(Number);const date=new Date(y,m-1+d);viewMonth=date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0');renderExpenses();}
+
+function renderCategories(){
+  document.getElementById('catMonthLabel').textContent=monthLabel(catMonth);
+  const monthly=expenses.filter(e=>e.date.startsWith(catMonth));
+  const cats={};monthly.forEach(e=>{cats[e.category]=(cats[e.category]||0)+e.amount;});
+  const total=monthly.reduce((s,e)=>s+e.amount,0);
+  const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  if(donutChart)donutChart.destroy();
+  const canvas=document.getElementById('donutChart');
+  if(sorted.length>0){
+    donutChart=new Chart(canvas,{type:'doughnut',data:{labels:sorted.map(c=>c[0]),datasets:[{data:sorted.map(c=>c[1]),backgroundColor:sorted.map(c=>CAT_COLORS[c[0]]||'#888'),borderWidth:3,borderColor:'#fff'}]},options:{plugins:{legend:{display:false}},cutout:'65%'}});
+  }
+  const listDiv=document.getElementById('catList');
+  listDiv.innerHTML=sorted.length===0?'<div class="empty"><div class="eicon">📊</div>No data this month</div>':
+    sorted.map(([cat,amt])=>`<div class="cat-item">
+      <div class="cat-dot" style="background:${CAT_COLORS[cat]||'#888'}"></div>
+      <div class="cat-item-name">${cat}</div>
+      <div class="cat-bar-mini"><div class="cat-bar-mini-fill" style="width:${((amt/total)*100).toFixed(0)}%;background:${CAT_COLORS[cat]||'#888'}"></div></div>
+      <div class="cat-item-amt">${fmt(amt)}</div>
+      <div class="cat-item-pct">${((amt/total)*100).toFixed(0)}%</div>
+    </div>`).join('')+'<div class="grand-total-row"><span>Grand Total</span><span>'+fmt(total)+'</span></div>';
+}
+
+function changeCatMonth(d){const[y,m]=catMonth.split('-').map(Number);const date=new Date(y,m-1+d);catMonth=date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0');renderCategories();}
+
+function doSearch(){
+  const date=document.getElementById('s-date').value;
+  const cat=document.getElementById('s-cat').value;
+  const note=(document.getElementById('s-note').value||'').toLowerCase();
+  const filtered=expenses.filter(e=>(!date||e.date===date)&&(!cat||e.category===cat)&&(!note||e.note.toLowerCase().includes(note)));
+  const total=filtered.reduce((s,e)=>s+e.amount,0);
+  document.getElementById('searchCount').textContent=filtered.length+' result(s)';
+  document.getElementById('searchTotal').textContent=filtered.length>0?'Total: '+fmt(total):'';
+  const div=document.getElementById('searchList');
+  div.innerHTML=filtered.length===0?'<div class="empty"><div class="eicon">🔍</div>No results found</div>':filtered.map(e=>expRow(e,expenses.indexOf(e),false)).join('');
+}
+
+function saveBudgetPage(){const val=parseFloat(document.getElementById('budgetInputPage').value);if(!val||val<=0){toast('Enter a valid amount','error');return;}budget=val;save();updateBudgetPage();renderDashboard();toast('Budget saved ✓','success');}
+function updateBudgetPage(){document.getElementById('budgetInputPage').value=budget||'';document.getElementById('budgetStatus').textContent=budget>0?'Current budget: '+fmt(budget)+' / month':'No budget set yet.';}
+
+function expRow(e,idx,showDel){
+  return `<div class="expense-row">
+    <span class="exp-cat-badge ${e.category}">${CAT_EMOJI[e.category]||'•'} ${e.category}</span>
+    <div class="exp-info"><div class="exp-name">${e.note==='-'?e.category+' expense':e.note}</div><div class="exp-date">${e.date}</div></div>
+    <div class="exp-amount">${fmt(e.amount)}</div>
+    ${showDel?`<button class="del-btn" onclick="deleteExpense(${idx})">🗑</button>`:''}
+  </div>`;
+}
+
+function toast(msg,type=''){
+  const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+</script>
+</body>
+</html>
